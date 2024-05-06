@@ -1,0 +1,1154 @@
+---
+title: "STAT232 Final Project"
+author:
+- name: Nandini Ramakrishnan, Pious Khemka, Vishesh Shukla
+output:
+  html_document:
+    toc: yes
+  pdf_document:
+    toc: yes
+---
+# Introduction:
+
+This project investigates the historical performance and risk characteristics of stocks from two distinct sectors of the S&P 500: Technology and Energy. We focus on Microsoft (MSFT) and Apple (AAPL) from the Technology sector and Exxon Mobil (XOM) and NextEra Energy, Inc. (NEE) from the Energy sector. By analyzing daily stock prices from January 1st, 2023, to December 31st, 2023, we aim to:
+
+ - Identify patterns and trends in stock price changes.
+ - Compare average daily returns and their variability across companies.
+ - Utilize moving averages to understand performance trends.
+ - Assess the correlation between the chosen stocks and its impact on diversification.
+ - Quantify and evaluate the risk associated with each stock.
+ - Explore the potential of ARIMA models for forecasting future stock closing prices along with the Feed-Forward Neural Networks model.
+
+# About the Dataset:
+This project utilizes a dataset containing daily stock prices for one year (January 1st, 2023 - December 31st, 2023) of four publicly traded companies listed on the S&P 500. 
+
+**Data Source:** Yahoo Finance library
+
+**Timeframe:** January 1, 2023 - December 31, 2023 (one year)
+
+**Companies Included:**
+
+ - Microsoft (MSFT): Technology Sector
+ 
+ - Apple (AAPL): Technology Sector
+ 
+ - Exxon Mobil Corporation (XOM): Energy Sector
+ 
+ - NextEra Energy, Inc. (NEE): Energy Sector
+ 
+**Data Attributes:**
+
+ - Date: Date of the stock price record (daily)
+ - Symbol: Unique identifier for each company's stock
+ - Open Price: The price at which the stock opened for trading on a given day (USD)
+ - High Price: The highest price at which the stock traded during the day (USD)
+ - Low Price: The lowest price at which the stock traded during the day (USD)
+ - Close Price: Adjusted closing price of the stock on that day (USD) - Primary Focus for Analysis
+ - Volume: The total number of shares traded for the company on that day
+
+## Data Relevance:
+
+This rich dataset offers a multifaceted perspective on the daily movements and performance of the chosen companies. The inclusion of opening, high, low, and closing prices allows for a comprehensive understanding of intraday price fluctuations. Additionally, volume data provides insights into trading activity and potential market sentiment.
+
+## Focus of Analysis:
+
+While the dataset offers a wealth of information, the primary focus of this project will be on the adjusted closing price. This metric enables accurate comparisons between companies and across time periods, unaffected by stock splits or dividend payments. However, the other attributes will be utilized for additional analysis as needed, enriching the overall understanding of stock performance.
+
+## Methodology:
+
+The project employs the following methods:
+
+ - Time Series Analysis: We will analyze the daily closing prices to identify trends, seasonality, and patterns in stock price movements.
+ - Return Calculations: We will calculate daily returns for each stock and compare their average returns and variability (standard deviation).
+ - Moving Averages: We will calculate and analyze different moving averages (e.g., simple moving average, exponential moving average) to smooth out price fluctuations and identify underlying trends.
+ - Correlation Analysis: We will assess the correlation between the stock prices to understand their relationship and its impact on portfolio diversification benefits.
+ - Risk Analysis: We will calculate risk measures like standard deviation and beta to quantify the risk associated with each stock.
+ - ARIMA Modeling: We explore the use of ARIMA models to forecast future stock closing prices based on historical data.
+ - Feedforward Neural Network (FNN) Model: We will explore the application of an FNN model to forecast future stock closing prices. The model will be trained on historical data (e.g., closing prices, trading volumes) to learn the underlying relationships and predict future trends. This analysis is intended to be exploratory and will be compared with other forecasting techniques like ARIMA models.
+
+## Data Analysis Results:
+
+This section dives into the analysis of our 2023 stock price data. Visualizations accompanied by insightful interpretations will unveil patterns and trends, helping answer our research questions about stock performance, risk, and diversification across the Technology and Energy sectors. 
+
+## Descriptive Analysis: 
+
+```{r}
+# Load necessary libraries
+library(quantmod)  
+library(ggplot2)
+library(forecast)
+library(tseries)
+
+# Load individual stock data files for analysis
+MSFT<- read.csv("MSFT.csv")
+AAPL<- read.csv("AAPL.csv")
+NEE<- read.csv("NEE.csv")
+XOM<- read.csv("XOM.csv")
+```
+```{r}
+# Summarize the data for each stock
+print("----Summary of MSFT---")
+summary(MSFT)
+print("----Summary of AAPL---")
+summary(AAPL)
+print("----Summary of NEE---")
+summary(NEE)
+print("----Summary of XOM---")
+summary(XOM)
+```
+Overall, the data for all companies suggest that the price of the stock fluctuated throughout the day, with the highest price being higher than the opening price and the lowest price being lower than the closing price. This is a typical pattern for stock prices.
+
+It is important to note that this is just a small sample of data, and it is not possible to draw any definitive conclusions about the stock from this information. However, it can be a useful tool for investors to get a general idea of how the stock is performing.
+
+## Change in Stock Price over Time
+
+```{r}
+
+#Code for studying the change in stock over time 
+
+# Convert Date column to Date type
+MSFT$Date <- as.Date(MSFT$Date)
+AAPL$Date <- as.Date(AAPL$Date)
+NEE$Date <- as.Date(NEE$Date)
+XOM$Date <- as.Date(XOM$Date)
+
+# Set up the layout for multiple plots. Plot the adjusted close prices for each stock over time
+par(mfrow=c(2,2))
+
+# Plot for NEE
+plot(NEE$Date, NEE$Adj.Close, type="l", col="blue", main="NEE", ylab="Adj close", xlab="Date", lwd=2, lty=1, ylim=c(min(NEE$Adj.Close), max(NEE$Adj.Close)), xaxt="n", yaxt="n")
+axis(1, at=seq(min(NEE$Date), max(NEE$Date), by="months"), labels=format(seq(min(NEE$Date), max(NEE$Date), by="months"), "%b\n%Y"))
+axis(2)
+grid()
+
+# Plot for MSFT
+plot(MSFT$Date, MSFT$Adj.Close, type="l", col="purple", main="MSFT", ylab="Adj close", xlab="Date", lwd=2, lty=1, ylim=c(min(MSFT$Adj.Close), max(MSFT$Adj.Close)), xaxt="n", yaxt="n")
+axis(1, at=seq(min(MSFT$Date), max(MSFT$Date), by="months"), labels=format(seq(min(MSFT$Date), max(MSFT$Date), by="months"), "%b\n%Y"))
+axis(2)
+grid()
+
+# Plot for AAPL
+plot(AAPL$Date, AAPL$Adj.Close, type="l", col="brown", main="AAPL", ylab="Adj close", xlab="Date", lwd=2, lty=1, ylim=c(min(AAPL$Adj.Close), max(AAPL$Adj.Close)), xaxt="n", yaxt="n")
+axis(1, at=seq(min(AAPL$Date), max(AAPL$Date), by="months"), labels=format(seq(min(AAPL$Date), max(AAPL$Date), by="months"), "%b\n%Y"))
+axis(2)
+grid()
+
+# Plot for XOM
+plot(XOM$Date, XOM$Adj.Close, type="l", col="red", main="XOM", ylab="Adj close", xlab="Date", lwd=2, lty=1, ylim=c(min(XOM$Adj.Close), max(XOM$Adj.Close)), xaxt="n", yaxt="n")
+axis(1, at=seq(min(XOM$Date), max(XOM$Date), by="months"), labels=format(seq(min(XOM$Date), max(XOM$Date), by="months"), "%b\n%Y"))
+axis(2)
+grid()
+
+# Reset the layout to default
+par(mfrow=c(1,1))
+
+
+```
+
+**Overall Trend:** It appears that Apple (AAPL) has the most significant increase in average closing price over the four-month period. Exxon Mobil (XOM) seems to have a slight increase, while the unidentified stock (NEE) appears to have a slight decrease.
+
+**Relative Performance:** Based on the positions of the lines, it seems that AAPL started lower than both XOM and the unidentified stock (NEE), but ended the period with the highest average closing price.
+
+## Volume of Transactions/ Sales Over Time
+
+```{r}
+
+#Code for Studying Volume of Transactions/ Sales over time
+
+# Function to convert numbers to thousands
+convert_to_thousands <- function(x) {
+  return(x / 1000)
+}
+
+# Set up the layout. Plot the volume of transactions/sales for each stock over time
+par(mfrow=c(2,2))
+
+# Plot for NEE Volume
+plot(NEE$Date, convert_to_thousands(NEE$Volume), type="l", col="blue", main="NEE Volume", ylab="Volume (in thousands)", xlab="Date", lwd=2, lty=1)
+grid()
+
+# Plot for MSFT Volume
+plot(MSFT$Date, convert_to_thousands(MSFT$Volume), type="l", col="purple", main="MSFT Volume", ylab="Volume (in thousands)", xlab="Date", lwd=2, lty=1)
+grid()
+
+# Plot for AAPL Volume
+plot(AAPL$Date, convert_to_thousands(AAPL$Volume), type="l", col="brown", main="AAPL Volume", ylab="Volume (in thousands)", xlab="Date", lwd=2, lty=1)
+grid()
+
+# Plot for XOM Volume
+plot(XOM$Date, convert_to_thousands(XOM$Volume), type="l", col="red", main="XOM Volume", ylab="Volume (in thousands)", xlab="Date", lwd=2, lty=1)
+grid()
+
+# Reset the layout to default
+par(mfrow=c(1,1))
+```
+
+ - AAPL (Apple): Apple's transaction volume appears to be consistently higher than the other three stocks throughout the entire period. There are also some spikes in volume, which could indicate periods of increased trading activity.
+ - NEE (NextEra Energy Inc): NEE's transaction volume appears to be lower than Apple's but higher than Microsoft's and Exxon Mobil's for most of the period. There is a significant spike in NEE's volume towards the end of the period.
+ - MSFT (Microsoft): Microsoft's transaction volume appears to be generally lower than the other three stocks throughout the period. There is a slight increase in volume towards the end of the period.
+ - XOM (Exxon Mobil): Exxon Mobil's transaction volume appears to be the lowest overall, with a few spikes in volume throughout the period.
+
+It's important to note that without knowing the time frame of the chart, it's difficult to say what caused the fluctuations in volume. However, some possible explanations for spikes in transaction volume include:
+
+ - News events: If there is a major news story about a company, it can cause an increase in trading activity and transaction volume.
+ - Earnings reports: When a company releases its earnings report, investors may buy or sell shares based on the company's financial performance. This can lead to an increase in transaction volume.
+ - New product launches: If a company launches a new product that is well-received by the market, it can cause an increase in investor interest and transaction volume.
+
+## Moving Averages
+
+```{r}
+
+#Code to study the moving average of the companies
+
+# Define the moving average days
+ma_day <- c(10, 20, 50, 100, 200)
+
+# List of dataframes
+companies <- list(MSFT, AAPL, NEE, XOM)
+company_names <- c("MSFT", "AAPL", "NEE", "XOM")
+
+# List of colors
+colors <- c("black", "red", "blue", "green", "purple", "orange")
+
+# Iterate over each company
+for (i in 1:length(companies)) {
+  company <- companies[[i]]
+  
+  # Compute moving averages for each company
+  for (j in 1:length(ma_day)) {
+    ma_col <- paste0("MA_", ma_day[j])
+    company[[ma_col]] <- SMA(company$Adj.Close, n = ma_day[j])
+  }
+  
+  # Plot the 'Adj Close' price and moving averages for each stock
+  plot(company$Date, company$Adj.Close, type = "l", col = "black", main = company_names[i], ylab = "Adj Close", xlab = "Date", ylim = range(company$Adj.Close, na.rm = TRUE, finite = TRUE), lwd = 2)
+  for (j in 1:length(ma_day)) {
+    ma_col <- paste0("MA_", ma_day[j])
+    lines(company$Date, company[[ma_col]], col = colors[j + 1])
+    
+  }
+ 
+  # Add legend
+  legend("bottomright", legend = c("Adj Close", paste("MA", ma_day)), col = c("black", colors[-1]), lwd = c(2, rep(1, length(ma_day))), bty = "n",cex = 0.6)
+}
+```
+
+### Microsoft
+
+ - Overall Trend: The chart suggests a possible upward trend in Microsoft's closing price over the time period shown. This is because all four moving averages are sloping upwards.
+ - ΜΑ 10 and MA 20: The MA 10 line (blue) is above the MA 20 line (green), which suggests that Microsoft's closing price has been rising in the short term (past 10 days).
+ - ΜΑ 50 and MA 100: The MA 50 line (orange) is also above the MA 100 line (purple), which suggests that Microsoft's closing price has been rising in the mid-term (past 50 days).
+
+### Apple
+
+ - Possible Upward Trend: The chart suggests a possible upward trend in Apple's closing price over the time period shown. This is because all four moving averages are sloping upwards.
+ - Short-Term Trend: The MA 10 line (blue) is above the MA 20 line (green), which suggests that Apple's closing price has been rising in the short term (past 10 days).
+ - Mid-Term Trend: The MA 50 line (orange) is also above the MA 100 line (purple), which suggests that Apple's closing price has been rising in the mid-term (past 50 days).
+
+### NextEra Energy Inc 
+
+ - Possible Downward Trend: The chart suggests a possible downward trend in NEE's closing price over the time period shown. This is because two of the moving averages (MA 20 and MA 50) are sloping downwards. The MA 100 (purple) is flat, and the MA 10 (blue) is slightly upwards but appears to be crossing below the MA 20 (green) which is a bearish signal.
+ - Short-Term Trend: The MA 10 line (blue) is below the MA 20 line (green), which suggests that NEE's closing price has been falling in the short term (past 10 days).
+ - Mid-Term Trend: The MA 50 line (orange) is also below the MA 100 line (purple), which suggests that NEE's closing price has been falling in the mid-term (past 50 days).
+
+### Exxon Mobil Corp
+
+ - Possible Flat Trend: The chart suggests a possible flat or neutral trend in XOM's closing price over the time period shown. This is because none of the moving averages are clearly sloping up or down. The MA 20 (green) and MA 50 (orange) lines are relatively flat, and the MA 100 (purple) line is slightly above the rest. The MA 10 (blue) line is choppy but seems to be hovering around the price range of the other moving averages.
+
+## Daily Return Percentage
+
+```{r}
+#Code for graphical representation of the Daily Return Percentage
+
+# List of data frames
+companies <- list(MSFT, AAPL, NEE, XOM)  # Assuming MSFT, AAPL, NEE, XOM are already loaded
+
+# List of company names
+company_names <- c("MSFT", "AAPL", "NEE", "XOM")
+
+# List of colors
+company_colors <- c("blue", "purple", "brown", "red")
+
+
+# Calculate and plot daily returns for each company
+for (i in seq_along(companies)) {
+  company <- companies[[i]]
+  
+  # Calculate daily returns
+  company$daily_return <- c(NA, diff(company$Adj.Close) / company$Adj.Close[-1])
+  
+  # Plot daily returns with different colors
+  plot(company$Date, company$daily_return * 100, type = "l", col = company_colors[i],
+       main = paste("Daily Return Percentage -", company_names[i]), 
+       ylab = "Daily Return (%)", xlab = "Date")
+}
+
+```
+
+### Microsoft
+
+ - Recent Performance: Over the past few days, Microsoft's closing price has fluctuated, with some days showing increases and others showing decreases.
+ - Range: The daily return percentages appear to be within a range of -2% to 2%. It's important to note that this is a relatively short time frame, and the stock's performance could change significantly over a longer period.
+
+### Apple
+
+ - Overall Trend: It's difficult to say definitively what the overall trend is from this image. However, there seems to be some volatility, with the price going up and down throughout the year.
+ - Recent Performance: Over the past few months (right side of the chart), the daily return percentages appear to be positive, which suggests that Apple's closing price has been increasing.
+
+### NextEra Energy Inc 
+
+ - Overall Trend: The overall trend for NEE's stock price appears to be flat or slightly negative over the past year. There have been periods of increase and decrease throughout the year, but the overall movement has been relatively small.
+ - Recent Performance: Over the past few months (right side of the chart), the daily return percentages have been mostly negative, with a few positive spikes. This suggests that NEE's closing price has been generally decreasing recently.
+
+### Exxon Mobil Corp
+
+ - Overall Trend: The overall trend for XOM's stock price appears to be volatile, with no clear upward or downward movement over the past year. There have been periods of increase and decrease throughout the year, with some swings being more significant than others.
+ - Recent Performance: Over the past few months (right side of the chart), the daily return percentages have been mixed. There have been some positive spikes, but also some negative periods. This suggests that XOM's closing price has been fluctuating recently.
+
+## Histogram of Daily Returns
+
+```{r}
+
+#Code for the Histogram of the Daily Returns
+
+# List of data frames
+companies <- list(MSFT, AAPL, NEE, XOM)  # Assuming MSFT, AAPL, NEE, XOM are already loaded
+
+# List of company names
+company_names <- c("MSFT", "AAPL", "NEE", "XOM")
+
+# List of colors
+company_colors <- c("blue", "purple", "brown", "red")
+
+# Set up the layout
+par(mfrow=c(2,2))
+
+# Calculate and plot daily returns for each company
+for (i in seq_along(companies)) {
+  company <- companies[[i]]
+  
+  # Calculate daily returns
+  company$daily_return <- c(NA, diff(company$Adj.Close) / company$Adj.Close[-1])
+  
+  # Create a histogram of daily returns
+  hist(company$daily_return * 100, breaks = 30, main = paste("Daily Return Percentage -", company_names[i]), 
+       xlab = "Daily Return (%)", ylab = "Frequency", col = company_colors[i])
+}
+
+# Reset the layout to default
+par(mfrow=c(1,1))
+
+```
+ - Distribution: The histograms for all four stocks appear to be bell-shaped, which suggests that the daily return percentages are normally distributed. A normal distribution is a symmetrical bell-shaped curve where most of the data points cluster around the average and fewer data points fall outside the tails.
+ - Center: The center of each histogram represents the average daily return percentage for each stock over the specified period. It appears that AAPL has the highest average daily return, followed by MSFT, XOM, and then NEE.
+ - Spread: The width of the histograms indicates the variability of the daily return percentages. A wider histogram suggests more spread in the data, meaning the daily returns were more volatile. Conversely, a narrower histogram suggests less spread and less volatility. Based on the graph, it appears that NEE and XOM have the most volatile daily returns, while AAPL and MSFT have less volatile daily returns.
+
+Overall, it suggests that the returns were normally distributed, with AAPL having the highest average return and NEE and XOM exhibiting the most volatility.
+
+
+## Correlation between Closing Prices of the Stocks
+
+```{r}
+# Combine closing prices into a single DataFrame
+all_closing_prices <- data.frame(Date = MSFT$Date, MSFT = MSFT$Close, AAPL = AAPL$Close, NEE = NEE$Close, XOM = XOM$Close)
+
+# Check the structure of the DataFrame
+str(all_closing_prices)
+
+# Compute correlation matrix of closing prices
+correlation_matrix <- cor(all_closing_prices[, -1])  # Exclude Date column
+
+# Print correlation matrix
+print(correlation_matrix)
+
+```
+
+```{r}
+correlation_df <- reshape2::melt(correlation_matrix)
+# Plot heatmap with correlation numbers
+ggplot(data = correlation_df, aes(x = Var1, y = Var2, fill = value, label = round(value, 2))) +
+  geom_tile() +
+  geom_text() +  
+  scale_fill_gradient2(low = "magenta", mid = "white", high = "pink", midpoint = 0, limit = c(-1,1), space = "Lab", name="Correlation") +
+  theme_minimal() +
+  theme(axis.title = element_blank(),
+        legend.position = "right") +
+  coord_fixed()
+```
+
+ - **Strong Positive Correlation (AAPL & MSFT):**  A strong positive correlation (0.95) over a year suggests that Apple (AAPL) and Microsoft (MSFT) stock prices tend to move together significantly. This could be due to factors like both being large technology companies or being influenced by similar economic conditions.
+
+ - **Moderate Negative Correlation (AAPL & XOM):** A moderate negative correlation (-0.55) over a year indicates that Apple (AAPL) and Exxon Mobil (XOM) stock prices tend to move in opposite directions. This could be because they represent different sectors (technology vs. energy) that may perform differently depending on economic conditions. For example, if oil prices go up, it might benefit XOM but could negatively impact technology companies like AAPL.
+
+ - **Weak Correlations (Others):** The remaining correlations (AAPL vs. NEE, MSFT vs. NEE, XOM vs. NEE) being weak (between -0.68 and 0.51) suggest a less clear relationship between the stock prices. These stocks might be influenced by more company-specific factors or different sectors
+ 
+## Risk Vs Expected Return 
+
+```{r}
+# Assuming you have loaded the data for each company into separate data frames named MSFT, AAPL, NEE, and XOM
+
+# List of company names
+company_names <- c("MSFT", "AAPL", "NEE", "XOM")
+
+# List of data frames
+companies <- list(MSFT, AAPL, NEE, XOM)
+
+# Initialize vectors to store risks and expected returns
+risks <- numeric(length(companies))
+expected_returns <- numeric(length(companies))
+
+# Calculate and plot daily returns for each company
+for (i in seq_along(companies)) {
+  company <- companies[[i]]
+  
+  # Calculate daily returns
+  company$daily_return <- c(NA, diff(company$Adj.Close) / company$Adj.Close[-1])
+  
+  # Compute standard deviation of daily returns (risk)
+  risks[i] <- sd(company$daily_return, na.rm = TRUE)
+  
+  # Compute mean of daily returns (expected return)
+  expected_returns[i] <- mean(company$daily_return, na.rm = TRUE)
+}
+
+# Create scatter plot of risk vs. expected return
+plot(expected_returns, risks, pch = 19, col = "blue", 
+     main = "Expected Return vs. Risk", xlab = "Expected Return",
+     ylab = "Risk (Standard Deviation)", xlim = c(min(expected_returns) * 1.2, max(expected_returns) * 1.2), ylim = c(0.011, max(risks) * 1.2))
+
+# Add company names as labels
+text(expected_returns, risks, labels = company_names, pos = 1, offset = 0.5)
+
+
+```
+
+ - Higher Expected Return, Higher Risk: Generally, there's a positive relationship between expected return and risk. Stocks plotted in the upper right quadrant (AAPL, MSFT) have both higher expected return and higher risk. This aligns with the principle that investors typically expect to be compensated for taking on more risk.
+ - Lower Expected Return, Lower Risk: Conversely, stocks in the lower left quadrant (XOM, NEE) have both lower expected return and lower risk. These investments may be suitable for investors seeking lower volatility and potentially more stable returns.
+
+### Specific observations about the stocks:
+
+ - AAPL (Apple): AAPL plots in the upper right quadrant, suggesting it has both high expected return and high risk. This could be because the technology sector is known for its growth potential but also tends to be more volatile.
+ - MSFT (Microsoft): Similar to AAPL, MSFT also plots in the upper right quadrant, indicating high expected return and high risk. This aligns with the technology sector's characteristics.
+ - XOM (Exxon Mobil): XOM plots in the lower left quadrant, suggesting lower expected return and lower risk. This could be because the energy sector, while important, may experience less fluctuation in stock prices compared to technology stocks.
+ - NEE (NextEra Energy): NEE also plots in the lower left quadrant, with lower expected return and lower risk. This might reflect the characteristics of the utility sector, which can be less volatile but may also offer potentially lower growth prospects.
+
+## ARIMA Model
+
+For the Autoregressive Integrated Moving Average or ARIMA model, we will have to follow the following steps
+
+ - Step 1: Testing and Ensuring Stationarity
+ 
+ - Step 2: Identify the appropriate order of Autoregressive (AR) and Moving average (MA) processes by using the Autocorrelation function (ACF) and Partial Autocorrelation function (PACF).
+ 
+ - Step 3: Estimation and Forecasting
+
+### Microsoft (MSFT)    
+
+```{r}
+# Load necessary libraries
+library(quantmod)
+library(ggplot2)
+library(forecast)
+library(tseries)
+
+```
+```{r}
+# Download MSFT stock data from Yahoo Finance for the specified time period
+getSymbols("MSFT",src="yahoo",from="2022-01-01",to = "2022-12-31")
+
+# Display the first few rows of the MSFT dataset
+head(MSFT)
+```
+```{r}
+# Plot the time series chart of MSFT stock prices
+chartSeries(MSFT,TA = NULL)
+```
+```{r}
+## Augmented Dickey-Fuller (ADF) Test to check for stationarity
+print(adf.test(MSFT$MSFT.Close))
+```
+```{r}
+## Plot the autocorrelation function (ACF) and partial autocorrelation function (PACF)
+
+par(mfrow = c(1, 2))
+acf(MSFT$MSFT.Close)
+pacf(MSFT$MSFT.Close)
+par(mfrow = c(1, 1))
+
+#dev.off()
+```
+
+**ADF Test: **
+
+ - The ADF test statistic is calculated to be -3.1129, with a p-value of 0.1072.
+Interpretation: With a p-value of 0.1072, we fail to reject the null hypothesis of non-stationarity at the 5% significance level. However, it's worth noting that the p-value is relatively close to the typical threshold of 0.05, indicating a borderline case.
+
+**ACF Analysis:**
+
+ - The ACF plot for MSFT stock returns gradually diminishes towards zero as the lag increases. However, some lags show spikes that exceed the confidence bounds.
+ 
+Interpretation: This indicates that there might be some weak autocorrelation in the returns at certain lags, suggesting that past returns might have a limited influence on future returns.
+
+While there's evidence of autocorrelation, the gradual decline towards zero suggests that the overall impact of past returns diminishes over time, supporting the notion of a stationary or quasi-stationary process.
+
+**PACF Analysis:**
+
+ - The PACF plot for MSFT stock returns shows a significant spike at lag 1, exceeding the confidence bounds. Additionally, lag 9 almost touches the confidence bound.
+
+Interpretation: This indicates a short-term dependence on the previous day's returns (lag 1), suggesting that yesterday's performance might influence today's returns. However, the significance of this influence diminishes rapidly for lags beyond the immediate previous day.
+
+While there's evidence of short-term dependence, particularly at lag 1, the influence of past returns on future returns quickly dissipates as we look further back in time. This supports the notion of a series with limited long-term memory or persistence.
+
+**Overall Interpretation:**
+While there are indications of autocorrelation and short-term dependence in MSFT stock returns, the evidence suggests that any influence of past returns on future returns is limited. This supports the notion of a series with quasi-stationary behavior, where the impact of past returns diminishes quickly over time.
+
+
+
+```{r}
+# Fit an ARIMA model automatically and display the summary
+modelfit <-auto.arima(MSFT$MSFT.Close, lambda = "auto")
+summary(modelfit)
+```
+```{r}
+# Plot the residuals of the ARIMA model
+plot(resid(modelfit),ylab="Residuals",main="Residuals(Arima(5,1,2)) vs. Time")
+```
+
+The ARIMA(0,1,0) model with Box-Cox transformation applied to Microsoft (MSFT) stock closing prices indicates a first-order differencing requirement for stationarity. The model exhibits an estimated variance of 10.95 and demonstrates reasonable fit, as evidenced by diagnostic plots and error measures.
+
+```{r}
+# Histogram of Residuals & Normality Assumption
+hist(resid(modelfit),freq=F,ylim=c(0,9500),main="Histogram of Residuals")
+e=resid(modelfit)
+curve(dnorm(x, mean=mean(e), sd=sd(e)), add=TRUE, col="darkred")
+```
+
+The histogram of residuals suggests a roughly symmetric distribution centered around zero, aligned with the normality assumption
+
+```{r}
+# Diagnostics tests for Arima
+tsdiag(modelfit)
+```
+
+Having our new ARIMA model applied and analyzed we can plot the model prediction in a red line over the real train set stock close price.
+
+```{r}
+# Box test for lag=2
+Box.test(modelfit$residuals, lag= 2, type="Ljung-Box")
+```
+```{r}
+Box.test(modelfit$residuals, type="Ljung-Box")
+```
+```{r}
+plot(as.ts(MSFT$MSFT.Close))
+lines(modelfit$fitted,col="red")
+```
+
+The Box-Ljung test results for different lag values indicate that there is no significant autocorrelation present in the residuals of the ARIMA model, as indicated by the high p-values (p > 0.05). This suggests that the residuals exhibit no systematic patterns over time. Additionally, the plot overlays the fitted values (red line) of the ARIMA model on the actual train set stock close price data.
+
+**ARIMA Results**
+Now with the model fitted we can proceed to forecast our daily close price values to the future. We focus on forecasting the close stock price for the next 30 days or an average month.
+
+
+```{r}
+# Forecast future values using the neural network model
+plot(forecast(modelfit,h=30))
+```
+
+The plot displays the forecasted closing prices for the next 30 days based on the ARIMA model.
+
+
+```{r}
+# Forecast future values using the neural network model
+price_forecast <- forecast(modelfit,h=30)
+plot(price_forecast)
+head(price_forecast$mean)
+```
+```{r}
+# Dividing the data into train & test sets , Applying the model
+N = length (MSFT$MSFT.Close)
+n = 0.8*N
+train = MSFT$MSFT.Close[1:n, ]
+test = MSFT$MSFT.Close[(n+1):N,]
+trainarimafit <- auto.arima(train$MSFT.Close ,lambda= "auto")
+summary(trainarimafit)
+predlen= length(test)
+trainarima_fit <- forecast(trainarimafit, h= predlen)
+```
+```{r}
+
+#Plotting mean predicted  values vs real data
+meanvalues<- as.vector(trainarima_fit$mean)
+precios <- as.vector(test$MSFT.Close)
+plot(meanvalues, type = "l",col="red")
+lines(precios, type = "l")
+#dev.off()
+```
+The red line illustrates the model's forecasted mean values, while the black line depicts the actual close prices observed in the test dataset. The declining trend in the red line indicates a general decrease in predicted values over time. Moreover, the appearance of a distinct straight black vertical line at a different index implies a notable discrepancy between the predicted and actual values at that specific point in time.
+
+```{r}
+#Fitting nnetar
+ lambda = BoxCox.lambda(MSFT$MSFT.Close)
+ dnn_fit = nnetar(MSFT[,4],lambda=lambda)
+ dnn_fit
+```
+```{r}
+ fcast = forecast(dnn_fit,PI=T,h=30)
+ autoplot(fcast)
+```
+```{r}
+# Calculate accuracy metrics for the neural network model
+ accuracy(dnn_fit) 
+```
+
+**Accuracy:**
+ME (Mean Error): The ME is approximately 0.0065, indicating a slight tendency for the model to slightly underestimate the actual close prices, on average.
+
+RMSE (Root Mean Square Error): With an RMSE value of around 5.77, the average magnitude of errors in the predictions is relatively moderate, suggesting a reasonable fit of the model to the data.
+
+MAE (Mean Absolute Error): The MAE value of about 4.55 represents the average absolute deviation of the predictions from the actual close prices, providing insight into the typical magnitude of errors.
+MPE (Mean Percentage Error): The MPE is close to -0.045%, indicating a minor bias in the predictions, with a tendency for the model to slightly underestimate actual close prices on average.
+
+MAPE (Mean Absolute Percentage Error): With a MAPE value of approximately 1.70%, the average percentage deviation of the predictions from the actual values is relatively low, indicating reasonable accuracy.
+
+MASE (Mean Absolute Scaled Error): The MASE value of about 0.985 suggests that the model performs similarly to a naive benchmark model, such as a random walk, indicating a comparable level of performance.
+
+**Overall Interpretation:**
+Overall, the NNAR model applied to the dataset demonstrates reasonably good performance in terms of accuracy measures. While there is a slight bias in the predictions, with a tendency to slightly underestimate actual close prices on average, the overall magnitude of errors, as reflected by RMSE and MAE, is moderate. Additionally, the model's performance, as measured by MASE and MAPE, suggests that it performs comparably to a naive benchmark model, indicating a reasonable level of accuracy
+
+### Apple (APPL)
+
+```{r}
+getSymbols("AAPL",src="yahoo",from="2022-01-01",to = "2022-12-31")
+head(AAPL)
+```
+```{r}
+chartSeries(AAPL,TA = NULL)
+```
+```{r}
+## ADF Test
+print(adf.test(AAPL$AAPL.Close))
+```
+```{r}
+## Plot ACF and PACF
+
+par(mfrow = c(1, 2))
+acf(AAPL$AAPL.Close)
+pacf(AAPL$AAPL.Close)
+par(mfrow = c(1, 1))
+
+#dev.off()
+```
+**ACF Analysis:**
+
+ - The ACF plot exhibits a gradual decline towards zero, but some lags show spikes that are outside the dashed confidence bounds.
+
+This suggests there might be some weak autocorrelation in the AAPL stock returns at certain lags. However, the decay towards zero indicates that the overall impact of past returns on future returns diminishes over time.
+
+**PACF Analysis:**
+
+ - The PACF plot shows a single significant spike at lag 1, exceeding the confidence bounds. There are no other significant spikes at higher lags.
+ 
+This suggests that there might be a short-term dependence in the AAPL stock returns. In other words, the previous day's return (lag 1) might have a slight influence on the current day's return. However, there's no evidence of significant dependence on returns from further past days.
+
+**Overall Interpretation:**
+
+While there might be some weak autocorrelation in AAPL's stock returns, it appears to be primarily limited to the previous day's return. This suggests that the series might be close to stationary.
+
+We then analyzed the p-values to assess the validity of the ARIMA model's assumptions.
+
+
+```{r}
+## Applying auto.arima() to the dataset 
+modelfit <-auto.arima(AAPL$AAPL.Close, lambda = "auto")
+summary(modelfit)
+```
+```{r}
+# Diagnostics on Residuals
+plot(resid(modelfit),ylab="Residuals",main="Residuals(Arima(5,1,2)) vs. Time")
+```
+```{r}
+# Histogram of Residuals & Normality Assumption
+hist(resid(modelfit),freq=F,ylim=c(0,9500),main="Histogram of Residuals")
+e=resid(modelfit)
+curve(dnorm(x, mean=mean(e), sd=sd(e)), add=TRUE, col="darkred")
+```
+```{r}
+# Diagnostics tests for Arima
+tsdiag(modelfit)
+```
+
+Having our new ARIMA model applied and analyzed we can plot the model prediction in a red line over the real train set stock close price.
+
+
+```{r}
+# Box test for lag=2
+Box.test(modelfit$residuals, lag= 2, type="Ljung-Box")
+```
+```{r}
+Box.test(modelfit$residuals, type="Ljung-Box")
+```
+```{r}
+plot(as.ts(AAPL$AAPL.Close))
+lines(modelfit$fitted,col="red")
+```
+
+**ARIMA Results**
+
+Now with the model fitted we can proceed to forecast our daily close price values to the future. We focus on forecasting the close stock price for the next 30 days or an average month.
+
+
+```{r}
+plot(forecast(modelfit,h=30))
+```
+
+The solid line represents the point forecast, while the shaded area depicts the prediction interval.
+
+ - Point Forecast: This is the solid line in the forecast plot and represents the most likely closing price for each day in the next month according to the model.
+ 
+ - Prediction Interval: The shaded area surrounding the point forecast depicts a range within which the actual closing prices are likely to fall with an 80% confidence level. It indicates a narrower range compared to a typical 95% confidence interval.
+
+
+```{r}
+price_forecast <- forecast(modelfit,h=30)
+plot(price_forecast)
+head(price_forecast$mean)
+```
+```{r}
+# Dividing the data into train & test sets , Applying the model
+N = length (AAPL$AAPL.Close)
+n = 0.8*N
+train = AAPL$AAPL.Close[1:n, ]
+test = AAPL$AAPL.Close[(n+1):N,]
+trainarimafit <- auto.arima(train$AAPL.Close ,lambda= "auto")
+summary(trainarimafit)
+predlen= length(test)
+trainarima_fit <- forecast(trainarimafit, h= predlen)
+```
+```{r}
+
+#Plotting mean predicted  values vs real data
+meanvalues<- as.vector(trainarima_fit$mean)
+precios <- as.vector(test$AAPL.Close)
+plot(meanvalues, type = "l",col="red")
+lines(precios, type = "l")
+#dev.off()
+```
+```{r}
+#Fitting nnetar
+ lambda = BoxCox.lambda(AAPL$AAPL.Close)
+ dnn_fit = nnetar(AAPL[,4],lambda=lambda)
+ dnn_fit
+```
+```{r}
+ fcast = forecast(dnn_fit,PI=T,h=30)
+ autoplot(fcast)
+```
+```{r}
+ accuracy(dnn_fit) 
+```
+**Accuracy**
+
+ME (Mean Error): -0.0311 suggests a slight underestimation bias similar to XOM's negative MPE. This means the model predicts closing prices slightly lower than actual values on average.
+
+RMSE (Root Mean Square Error): 3.3611 indicates a higher average prediction error compared to XOM's 1.9748. This suggests larger deviations from actual prices on some occasions.
+
+MAE (Mean Absolute Error): 2.6127 aligns with the higher RMSE, showing a larger average absolute difference between predicted and actual prices compared to XOM.
+
+MPE (Mean Percentage Error): -0.0696% reinforces the underestimation bias seen in ME.
+
+MAPE (Mean Absolute Percentage Error): 1.7101% is quite similar to XOM's MAPE, suggesting a comparable average percentage deviation from actual values.
+
+MASE (Mean Absolute Scaled Error): 0.9849 is close to 1, indicating similar performance to a naive model (like XOM). However, the higher RMSE and MAE suggest the Apple model might not be quite as good as the XOM model in this specific comparison.
+
+ACF1 (Autocorrelation Function at Lag 1):  0.0046 suggests minimal autocorrelation in the errors, which is a positive sign.
+
+**Overall Interpretation for Apple Stock**
+The model shows a slight underestimation bias, predicting prices slightly lower than actual on average.
+
+Despite the higher errors, the MAPE being similar to XOM's indicates a comparable level of relative error.
+
+The MASE being close to 1 suggests similar performance to a basic model, similar to the XOM analysis.
+
+
+```{r}
+getSymbols("NEE",src="yahoo",from="2022-01-01",to = "2022-12-31")
+head(NEE)
+```
+```{r}
+chartSeries(NEE,TA = NULL)
+```
+```{r}
+## ADF Test
+print(adf.test(NEE$NEE.Close))
+```
+```{r}
+## Plot ACF and PACF
+
+par(mfrow = c(1, 2))
+acf(NEE$NEE.Close)
+pacf(NEE$NEE.Close)
+par(mfrow = c(1, 1))
+
+#dev.off()
+```
+
+**ADF Test:**
+
+ - The ADF test statistic for NEE stock returns is calculated to be -2.8072, with a p-value of 0.2359.
+ 
+Interpretation: With a p-value of 0.2359, we fail to reject the null hypothesis of non-stationarity at the 5% significance level. The result suggests that the series may exhibit stationary behavior, but it's not statistically significant.
+
+While there's no definitive evidence to conclude that the NEE stock returns are stationary based on the ADF test alone, further analysis or alternative tests may be needed for confirmation.
+
+**ACF Analysis:**
+
+ - The ACF plot for NEE stock returns gradually diminishes towards zero as the lag increases. However, some lags show spikes that exceed the confidence bounds.
+ 
+Interpretation: This suggests that there might be some weak autocorrelation in the returns at certain lags, indicating that past returns might have a limited influence on future returns.
+
+Although autocorrelation is observed, the gradual decline towards zero implies that the impact of past returns diminishes over time, supporting the notion of a stationary or quasi-stationary process.
+
+**PACF Analysis:**
+
+ - The PACF plot for NEE stock returns shows a significant spike at lag 1, exceeding the confidence bounds. Additionally, lag 17 touches slightly above the positive confidence bound, and lag 20 touches slightly below the negative confidence bound.
+ 
+Interpretation: This indicates short-term dependence on the previous day's returns (lag 1), suggesting that yesterday's performance might influence today's returns. However, the significance of this influence diminishes rapidly for lags beyond the immediate previous day.
+
+While there's evidence of short-term dependence, particularly at lag 1, the influence of past returns on future returns quickly diminishes as we look further back in time. This supports the notion of a series with limited long-term memory or persistence.
+
+**Overall Interpretation:**
+
+While there are indications of autocorrelation and short-term dependence in NEE stock returns, the evidence suggests that any influence of past returns on future returns is limited. This supports the notion of a series with quasi-stationary behavior, where the impact of past returns diminishes quickly over time.
+
+
+```{r}
+## Applying auto.arima() to the dataset 
+modelfit <-auto.arima(NEE$NEE.Close, lambda = "auto")
+summary(modelfit)
+```
+```{r}
+# Diagnostics on Residuals
+plot(resid(modelfit),ylab="Residuals",main="Residuals(Arima(5,1,2)) vs. Time")
+```
+
+The plot of residuals from the ARIMA(1,1,1) model applied to the NEE stock closing prices indicates a relatively random pattern around zero, suggesting that the model adequately captures the underlying patterns in the data
+
+```{r}
+# Histogram of Residuals & Normality Assumption
+hist(resid(modelfit),freq=F,ylim=c(0,9500),main="Histogram of Residuals")
+e=resid(modelfit)
+curve(dnorm(x, mean=mean(e), sd=sd(e)), add=TRUE, col="darkred")
+```
+
+The histogram of residuals displays a symmetric distribution around zero, resembling a normal distribution.
+
+```{r}
+# Diagnostics tests for Arima
+tsdiag(modelfit)
+```
+```{r}
+# Box test for lag=2
+Box.test(modelfit$residuals, lag= 2, type="Ljung-Box")
+```
+```{r}
+Box.test(modelfit$residuals, type="Ljung-Box")
+```
+```{r}
+plot(as.ts(NEE$NEE.Close))
+lines(modelfit$fitted,col="red")
+```
+
+The Box-Ljung test for lag 2 yields an X-squared value of 0.1347 with a p-value of 0.9349, and for lag 1, an X-squared value of 0.12347 with a p-value of 0.7253, indicating no significant autocorrelation in the residuals. Additionally, the plot of actual versus fitted values shows a close alignment, suggesting that the model captures the underlying pattern in the data effectively.
+
+```{r}
+plot(forecast(modelfit,h=30))
+```
+```{r}
+price_forecast <- forecast(modelfit,h=30)
+plot(price_forecast)
+head(price_forecast$mean)
+```
+```{r}
+# Dividing the data into train & test sets , Applying the model
+N = length (NEE$NEE.Close)
+n = 0.8*N
+train = NEE$NEE.Close[1:n, ]
+test = NEE$NEE.Close[(n+1):N,]
+trainarimafit <- auto.arima(train$NEE.Close ,lambda= "auto")
+summary(trainarimafit)
+predlen= length(test)
+trainarima_fit <- forecast(trainarimafit, h= predlen)
+```
+```{r}
+
+#Plotting mean predicted  values vs real data
+meanvalues<- as.vector(trainarima_fit$mean)
+precios <- as.vector(test$NEE.Close)
+plot(meanvalues, type = "l",col="red")
+lines(precios, type = "l")
+#dev.off()
+```
+
+The vertical black line observed at index 5 in the plot signifies a specific point in time, possibly representing a significant event or transition in the data. Meanwhile, the fluctuating red line represents the mean predicted values generated by the ARIMA model. Notably, the red line smoothens out and becomes nearly straight around the mean value of 74.93, indicating that the model predicts a steady value for the closing prices beyond this point, likely due to the underlying data pattern stabilizing.
+
+```{r}
+#Fitting nnetar
+ lambda = BoxCox.lambda(NEE$NEE.Close)
+ dnn_fit = nnetar(NEE[,4],lambda=lambda)
+ dnn_fit
+```
+```{r}
+ fcast = forecast(dnn_fit,PI=T,h=30)
+ autoplot(fcast)
+```
+```{r}
+ accuracy(dnn_fit) 
+```
+**Accuracy:**
+
+ME (Mean Error): The ME is approximately -0.014, indicating a slight tendency for the model to slightly overestimate the actual close prices, on average.
+
+RMSE (Root Mean Square Error): With an RMSE value of around 1.51, the average magnitude of errors in the predictions is relatively low, suggesting a reasonable fit of the model to the data.
+
+MAE (Mean Absolute Error): The MAE value of about 1.12 represents the average absolute deviation of the predictions from the actual close prices, providing insight into the typical magnitude of errors.
+
+MPE (Mean Percentage Error): The MPE is close to -0.06%, suggesting a minor bias in the predictions, with a tendency for the model to slightly underestimate actual close prices on average.
+
+MAPE (Mean Absolute Percentage Error): With a MAPE value of approximately 1.41%, the average percentage deviation of the predictions from the actual values is relatively low, indicating reasonable accuracy.
+
+MASE (Mean Absolute Scaled Error): The MASE value of about 0.986 suggests that the model performs similarly to a naive benchmark model, such as a random walk, indicating a comparable level of performance.
+
+**Overall Interpretation:**
+Overall, the NNAR model applied to the NEE stock close prices demonstrates reasonably good performance in terms of accuracy measures. Despite a slight bias in the predictions, indicated by the negative ME and MPE, the overall magnitude of errors, as reflected by RMSE and MAE, is relatively low. Additionally, the model's performance, as measured by MASE, suggests that it performs comparably to a simple benchmark model
+
+```{r}
+getSymbols("XOM",src="yahoo",from="2022-01-01",to = "2022-12-31")
+head(XOM)
+```
+```{r}
+chartSeries(XOM,TA = NULL)
+```
+```{r}
+## ADF Test
+print(adf.test(XOM$XOM.Close))
+```
+```{r}
+## Plot ACF and PACF
+
+par(mfrow = c(1, 2))
+acf(XOM$XOM.Close)
+pacf(XOM$XOM.Close)
+par(mfrow = c(1, 1))
+
+#dev.off()
+```
+
+**ADF Test:**
+The ADF test statistic for XOM stock returns is calculated to be -2.9808, with a p-value of 0.1628.
+Interpretation: With a p-value of 0.1628, we fail to reject the null hypothesis of non-stationarity at the 5% significance level. While the result suggests potential stationary behavior, it's not statistically significant.
+
+**ACF Analysis:**
+The ACF plot for XOM stock returns gradually diminishes towards zero as the lag increases.
+Interpretation: This gradual decline suggests that there might be some weak autocorrelation in the returns at certain lags, indicating that past returns might have a limited influence on future returns.
+
+**PACF Analysis:**
+The PACF plot for XOM stock returns shows a significant spike at lag 1, exceeding the confidence bounds. Additionally, lag 20 almost touches the positive end of the confidence bounds.
+
+Interpretation: This indicates short-term dependence on the previous day's returns (lag 1), suggesting that yesterday's performance might influence today's returns. However, the significance of this influence diminishes rapidly for lags beyond the immediate previous day.
+
+While there's evidence of short-term dependence, particularly at lag 1, the influence of past returns on future returns quickly diminishes as we look further back in time.
+
+**Overall Interpretation:**
+The overall interpretation of the ADF test, ACF, and PACF analysis for XOM stock returns suggests that while there are indications of potential stationarity and short-term dependence on past returns, the evidence is not statistically significant.
+
+
+```{r}
+## Applying auto.arima() to the dataset 
+modelfit <-auto.arima(XOM$XOM.Close, lambda = "auto")
+summary(modelfit)
+```
+```{r}
+# Diagnostics on Residuals
+plot(resid(modelfit),ylab="Residuals",main="Residuals(Arima(5,1,2)) vs. Time")
+```
+
+The auto.arima() function suggests an ARIMA(0,1,0) model with a drift term. The model residuals exhibit a mean close to zero and show no apparent patterns, indicating that the model adequately captures the underlying dynamics of the XOM stock return
+
+```{r}
+# Histogram of Residuals & Normality Assumption
+hist(resid(modelfit),freq=F,ylim=c(0,9500),main="Histogram of Residuals")
+e=resid(modelfit)
+curve(dnorm(x, mean=mean(e), sd=sd(e)), add=TRUE, col="darkred")
+```
+
+The histogram of residuals shows a symmetric distribution centered around zero, indicating that the residuals are approximately normally distributed
+
+```{r}
+# Diagnostics tests for Arima
+tsdiag(modelfit)
+```
+```{r}
+# Box test for lag=2
+Box.test(modelfit$residuals, lag= 2, type="Ljung-Box")
+```
+```{r}
+Box.test(modelfit$residuals, type="Ljung-Box")
+```
+```{r}
+plot(as.ts(XOM$XOM.Close))
+lines(modelfit$fitted,col="red")
+```
+
+The Box-Ljung test for lag=2 yields a p-value of 0.8041, indicating no evidence of significant autocorrelation in the residuals at lag 2. Similarly, the test for lag=1 also shows no significant autocorrelation with a p-value of 0.8522. This suggests that the ARIMA model adequately captures the temporal dependencies in the data
+
+
+```{r}
+plot(forecast(modelfit,h=30))
+```
+```{r}
+price_forecast <- forecast(modelfit,h=30)
+plot(price_forecast)
+head(price_forecast$mean)
+```
+```{r}
+# Dividing the data into train & test sets , Applying the model
+N = length (XOM$XOM.Close)
+n = 0.8*N
+train = XOM$XOM.Close[1:n, ]
+test = XOM$XOM.Close[(n+1):N,]
+trainarimafit <- auto.arima(train$XOM.Close ,lambda= "auto")
+summary(trainarimafit)
+predlen= length(test)
+trainarima_fit <- forecast(trainarimafit, h= predlen)
+```
+```{r}
+
+#Plotting mean predicted  values vs real data
+meanvalues<- as.vector(trainarima_fit$mean)
+precios <- as.vector(test$XOM.Close)
+plot(meanvalues, type = "l",col="red")
+lines(precios, type = "l")
+#dev.off()
+```
+
+The red line, representing the mean predicted values, appears to follow a more linear trend, suggesting a relatively stable forecast over time. However, the black line, depicting the actual values from the test set, exhibits more variability, indicating fluctuations in the observed stock prices. This observation suggests that while the ARIMA model provides a general trend, it might not capture all the short-term fluctuations present in the actual data.
+
+
+```{r}
+#Fitting nnetar
+ lambda = BoxCox.lambda(XOM$XOM.Close)
+ dnn_fit = nnetar(XOM[,4],lambda=lambda)
+ dnn_fit
+```
+```{r}
+ fcast = forecast(dnn_fit,PI=T,h=30)
+ autoplot(fcast)
+```
+```{r}
+ accuracy(dnn_fit) 
+```
+**Accuracy:**
+
+ME (Mean Error): The average prediction error is approximately -0.0079, suggesting that the model tends to slightly underestimate or overestimate actual close prices on average.
+
+RMSE (Root Mean Square Error): With an RMSE value of about 1.9748, the model's average prediction error is around this value, indicating the overall fit of the model to the data.
+
+MAE (Mean Absolute Error): The MAE value of approximately 1.5509 represents the average absolute deviation of the predictions from the actual close prices, providing insight into the typical magnitude of errors.
+
+MPE (Mean Percentage Error): The MPE of around -0.0562% indicates a slight negative bias in the predictions, suggesting that, on average, the model underestimates actual close prices.
+
+MAPE (Mean Absolute Percentage Error): The MAPE value of about 1.7039% represents the average percentage deviation of the predictions from the actual values, providing a relative measure of the model's accuracy.
+
+MASE (Mean Absolute Scaled Error): With a value close to 1 (approximately 0.9814), the MASE indicates that the NNAR model performs similarly to a naive benchmark model, such as a random walk.
+
+ACF1 (Autocorrelation Function at Lag 1): The ACF1 value of 0.0155 assesses the correlation of the model residuals at lag 1, indicating any remaining autocorrelation in the errors after accounting for the lag-1 autocorrelation.
+
+**Overall Interpretation:**
+
+Overall, the NNAR model applied to XOM stock close prices demonstrates relatively good performance in terms of accuracy measures. While there is a slight bias in the predictions, indicated by the negative MPE, the overall magnitude of errors, as reflected by RMSE and MAE, is reasonable. Additionally, the model's performance, as measured by MASE, suggests that it performs comparably to a simple benchmark model.
+
+# Industry Comparision
+
+We analyzed the Technology and Energy index prices, compared their charts, and found a correlation between their closing prices.
+
+```{r}
+getSymbols("XLK",src="yahoo",from="2022-01-01",to = "2022-12-31")
+head(XLK)
+```
+```{r}
+chartSeries(XLK,TA = NULL)
+```
+```{r}
+getSymbols("XLE",src="yahoo",from="2022-01-01",to = "2022-12-31")
+head(XLE)
+```
+```{r}
+chartSeries(XLE,TA = NULL)
+```
+
+```{r}
+str(XLK)
+```
+```{r}
+# Combine closing prices of index into a single DataFrame
+all_index_closing_prices <- data.frame(XLK = XLK$XLK.Adjusted, XLE = XLE$XLE.Adjusted)
+
+# Check the structure of the DataFrame
+str(all_index_closing_prices)
+
+# Compute correlation matrix of closing prices
+correlation_matrix_indexes <- cor(all_index_closing_prices)  # Exclude Date column
+
+# Print correlation matrix
+print(correlation_matrix_indexes)
+
+
+```
+
+```{r}
+correlation_df_indexes <- reshape2::melt(correlation_matrix_indexes)
+# Plot heatmap with correlation numbers
+ggplot(data = correlation_df_indexes, aes(x = Var1, y = Var2, fill = value, label = round(value, 2))) +
+  geom_tile() +
+  geom_text() +  
+  scale_fill_gradient2(low = "magenta", mid = "white", high = "pink", midpoint = 0, limit = c(-1,1), space = "Lab", name="Correlation") +
+  theme_minimal() +
+  theme(axis.title = element_blank(),
+        legend.position = "right") +
+  coord_fixed()
+```
+
+**Strong Positive Correlations (AAPL & MSFT, MSFT & XOM):** Finding a strong positive correlation (0.95) between Apple (AAPL), Microsoft (MSFT), and Exxon Mobil (XOM) for a one-year period suggests their stock prices moved together significantly. This could be due to:
+ - Market Trends: The overall market conditions may have influenced all three stocks in the same direction.
+ - Large-Cap Behavior: Being large-cap companies, they might be more susceptible to broad market movements.
+ - Technology & Economy: While AAPL and MSFT are in tech, their success can be tied to the overall economy, potentially influencing XOM (energy) indirectly.
+
+**Moderate Negative Correlation (AAPL & XOM):** A moderate negative correlation (-0.55) between Apple and Exxon Mobil over a year indicates their stock prices tended to move in opposite directions. This aligns with the concept of sector diversification:
+ - Different Sectors: Technology (AAPL) and Energy (XOM) respond differently to economic factors. When tech thrives, energy may not, and vice versa.
+
+**Weak Correlations (Others):** The remaining correlations (AAPL vs. NEE, MSFT vs. NEE, XOM vs. NEE) being weak (between -0.68 and 0.51) suggest less clear relationships within a one-year timeframe. These stocks might be more influenced by:
+ - Company-Specific Events: News, product launches, or internal factors could have a more significant impact on individual stock prices.
+ - Different Sectors Again: NextEra Energy (NEE) being in the utility sector can have its own performance drivers compared to the other three.
+ 
+# Conclusion:
+Based on the analysis of various charts and data for Apple (AAPL), Microsoft (MSFT), Exxon Mobil (XOM), and NextEra Energy (NEE) over a one-year period, here are the key takeaways:
+
+**Stock Price Movement:**
+
+ - Apple and Microsoft (technology sector) exhibited a strong positive correlation, suggesting their stock prices often moved in the  same direction. This could be due to factors like being large-cap companies or influenced by similar economic conditions.
+ - Apple and Exxon Mobil showed a moderate negative correlation, indicating their prices tended to move oppositely. This aligns with them belonging to different sectors (technology vs. energy) that may perform differently depending on the economic climate.
+ - The correlations between NextEra Energy (utility sector) and the other three stocks were weak, suggesting less clear relationships within a one-year timeframe.
+
+**Risk-Return Tradeoff:**
+
+ - The expected return vs risk chart indicated a positive relationship. Apple and Microsoft, positioned in the upper right quadrant, had potentially higher expected returns but also higher risk, reflecting the technology sector's characteristics.
+ - Exxon Mobil and NextEra Energy plotted in the lower left quadrant, suggesting potentially lower expected returns but also lower risk, which may be suitable for investors seeking less volatility.
+**Limitations:**
+ - The data covered a one-year period, and correlations can change over time. This analysis provides a snapshot but may not capture long-term trends.
+ - Stock prices are influenced by various factors beyond historical data or correlations.
+
+Overall, this analysis highlights the importance of considering both risk and return when making investment decisions. The technology sector may offer higher potential returns but also comes with greater risk, while utility and energy sectors might provide lower risk but potentially lower returns as well. Diversifying your portfolio across sectors can be a strategy to manage risk.
+
+
+
